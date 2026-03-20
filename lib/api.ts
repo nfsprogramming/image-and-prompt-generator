@@ -4,16 +4,19 @@ export interface ImageGenerationResponse {
     seed: number;
 }
 
-export const generateImage = async (prompt: string, seed: number, model: string = 'nano-banana-pro'): Promise<string> => {
+export const generateImage = async (prompt: string, seed: number, model: string = 'flux'): Promise<string> => {
     // Pollinations.ai URL structure
-    // Endpoint: https://image.pollinations.ai/prompt/[prompt]?width=1024&height=1024&seed=[seed]&model=[model]
     const encodedPrompt = encodeURIComponent(prompt);
     const width = 1024;
     const height = 1024;
 
-    // Using the requested model (defaulting to Nano Banana Pro / Gemini 3)
-    // Removed API key and nologo=true to avoid "We have moved" error from legacy legacy keys
-    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${model}`;
+    // Map custom UI names to valid Pollinations models
+    let apiModel = model;
+    if (model === 'nano-banana-pro' || model === 'nano-banana') {
+        apiModel = 'flux'; // 'flux' is the current gold standard for quality
+    }
+
+    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${apiModel}&nologo=true`;
 
     return url;
 };
@@ -23,47 +26,25 @@ export const generateImage = async (prompt: string, seed: number, model: string 
 export const enhancePrompt = async (basePrompt: string, styleType: string = "cinematic"): Promise<string> => {
     // 1. Try AI-Powered Enhancement (The "Brain")
     try {
-        // Construct a specialized system instruction for the AI
         const systemInstruction = `
-            You are an expert AI Prompt Engineer for high-end image generation (Midjourney v6, Flux Pro, Gemini 3).
-            Your goal is to transform simple user inputs into "Masterpiece" level prompts.
-            
-            CRITICAL INSTRUCTIONS:
-            
-            1. **FOOD & INGREDIENTS (Priority High):**
-               - Triggers: ginger, garlic, rice, spices, fruits, vegetables.
-               - Style: "Commercial Food Photography", "Michelin Guide Style".
-               - Key Elements: "Macro 100mm lens", "Studio lighting", "Fresh moisture droplets", "Levitating/Floating", "Dynamic Splash".
-               - *MANDATORY for 'Ginger':* Output EXACTLY: "A professional commercial food photography shot of a fresh knob of ginger root floating in the air. The subject is a fresh knob of ginger root with knobbly texture, golden-brown skin, slight sheen. It is suspended in mid-air with dynamic motion. Studio lighting, 8k resolution, ultra-sharp focus, moisture droplets."
-            
-            2. **PORTRAITS & PEOPLE:**
-               - Style: "Fashion Editorial", "Cinematic Portrait".
-               - Key Elements: "85mm lens", "f/1.8 aperture", "Natural skin texture", "Subsurface scattering", "Rembrandt lighting", "Eye reflection".
-            
-            3. **LANDSCAPES & NATURE:**
-               - Style: "National Geographic", "Fine Art Landscape".
-               - Key Elements: "Wide angle 24mm", "Golden Hour", "Dramatic cloud formation", "Tyndall effect (god rays)", "Hyper-detailed flora".
-            
-            4. **SCI-FI & FUTURE:**
-               - Style: "Concept Art", "Blade Runner Aesthetic".
-               - Key Elements: "Volumetric fog", "Neon accents", "Chrome reflections", "Atmospheric perspective", "Unreal Engine 5 Render".
-
-            5. **GENERAL EXCELLENCE:**
-               - Usage: For any other input.
-               - Apply the requested style: "${styleType}".
-               - Always include: "8k resolution", "highly detailed", "sharp focus", "cinematic lighting".
-            
-            OUTPUT FORMAT:
-            - Provide ONLY the final prompt string.
-            - Do NOT wrap in quotes.
-            
-            INPUT: "${basePrompt}"
+            You are an expert AI Prompt Engineer for image generation.
+            Transform this simple input into a masterpiece prompt: "${basePrompt}".
+            Style: "${styleType}".
+            MANDATORY: Use "commercial food photography" for food/ingredients.
+            Output ONLY the final prompt. No quotes.
         `.trim();
 
         const encodedInstruction = encodeURIComponent(systemInstruction);
-        // Using Pollinations Text API (Anonymous - legacy endpoint works for num-auth)
-        // Note: Authenticated requests on this endpoint are deprecated, so we omit the key here.
-        const response = await fetch(`https://text.pollinations.ai/openai/${encodedInstruction}`);
+        
+        // Add a timeout to prevent hanging the whole app
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+        const response = await fetch(`https://text.pollinations.ai/openai/${encodedInstruction}`, {
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
 
         if (response.ok) {
             const aiPrompt = await response.text();
@@ -73,7 +54,7 @@ export const enhancePrompt = async (basePrompt: string, styleType: string = "cin
             }
         }
     } catch (error) {
-        console.warn("AI Prompt Enhancement failed, falling back to manual logic.", error);
+        console.warn("AI Prompt Enhancement failed or timed out, falling back to manual logic.");
     }
 
     // 2. Fallback: Manual "Master Builder" Logic (If AI fails)
