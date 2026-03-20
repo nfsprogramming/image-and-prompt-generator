@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Image as ImageIcon, Copy, Download, RefreshCw, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
