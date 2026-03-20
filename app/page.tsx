@@ -39,11 +39,14 @@ export default function Home() {
 
     try {
       // Create an array of promises for parallel generation
-      const urls = Array.from({ length: batchSize }).map((_, i) => {
+      const promises = Array.from({ length: batchSize }).map((_, i) => {
         // Use a unique seed for each image to ensure variety
         const seed = Math.floor(Math.random() * 1000000);
         return generateImage(optimizedPrompt, seed, model);
       });
+
+      // Await all URL generation promises in parallel
+      const urls = await Promise.all(promises);
 
       // Set images immediately - the browser will handle loading states on the <img /> tags
       setGeneratedImages(urls);
@@ -123,7 +126,7 @@ export default function Home() {
               <div className="flex items-center gap-4">
                 <select
                   value={model}
-                  onChange={(e) => setModel(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setModel(e.target.value)}
                   className="h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-white focus:outline-none focus:border-purple-500/50"
                   title="Select AI Model"
                 >
@@ -137,7 +140,7 @@ export default function Home() {
 
                 <select
                   value={style}
-                  onChange={(e) => setStyle(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStyle(e.target.value)}
                   className="h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-white focus:outline-none focus:border-purple-500/50"
                   title="Select Enhancement Style"
                 >
@@ -159,7 +162,7 @@ export default function Home() {
 
                 <select
                   value={batchSize}
-                  onChange={(e) => setBatchSize(Number(e.target.value))}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setBatchSize(Number(e.target.value))}
                   className="h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-white focus:outline-none focus:border-purple-500/50"
                   title="Select Batch Size"
                 >
@@ -213,7 +216,7 @@ export default function Home() {
               ))
             ) : (
               // Generated Images
-              generatedImages.map((src, index) => (
+              generatedImages.map((src: string, index: number) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, scale: 0.9, y: 20 }}
