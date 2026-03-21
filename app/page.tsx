@@ -221,42 +221,73 @@ export default function Home() {
               ))
             ) : (
               // Generated Images
-              generatedImages.map((src: string, index: number) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group relative aspect-square rounded-2xl overflow-hidden border border-white/10 bg-black/50"
-                >
-                  <img
-                    src={src}
-                    alt={`Generated ${index + 1}`}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    loading="lazy"
-                  />
+              generatedImages.map((src: string, index: number) => {
+                const [hasError, setHasError] = useState(false);
+                const [currentSrc, setCurrentSrc] = useState(src);
 
-                  {/* Overlay Actions */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 backdrop-blur-sm">
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="rounded-full bg-white/10 hover:bg-white/20 text-white border-0"
-                      onClick={() => window.open(src, '_blank')}
-                    >
-                      <Download className="w-5 h-5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="rounded-full bg-white/10 hover:bg-white/20 text-white border-0"
-                      onClick={() => navigator.clipboard.writeText(prompt)}
-                    >
-                      <Copy className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </motion.div>
-              ))
+                const handleRetry = () => {
+                  setHasError(false);
+                  const newSeed = Math.floor(Math.random() * 1000000);
+                  // Construct new URL with fresh seed to bypass cache/retry
+                  const newUrl = currentSrc.replace(/seed=\d+/, `seed=${newSeed}`);
+                  setCurrentSrc(newUrl + `&t=${Date.now()}`); // Force refresh
+                };
+
+                return (
+                  <motion.div
+                    key={`${index}-${currentSrc}`}
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="group relative aspect-square rounded-2xl overflow-hidden border border-white/10 bg-black/50"
+                  >
+                    {!hasError ? (
+                      <img
+                        src={currentSrc}
+                        alt={`Generated ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        loading="lazy"
+                        onError={() => setHasError(true)}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-red-900/10 backdrop-blur-sm">
+                        <RefreshCw className="w-8 h-8 text-red-400 mb-2" />
+                        <span className="text-xs text-red-400 uppercase tracking-widest mb-4">Fail</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleRetry}
+                          className="bg-white/5 hover:bg-white/10 text-white border border-white/10"
+                        >
+                          Retry Image
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Overlay Actions (Only show if no error) */}
+                    {!hasError && (
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 backdrop-blur-sm">
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="rounded-full bg-white/10 hover:bg-white/20 text-white border-0"
+                          onClick={() => window.open(currentSrc, '_blank')}
+                        >
+                          <Download className="w-5 h-5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="rounded-full bg-white/10 hover:bg-white/20 text-white border-0"
+                          onClick={() => navigator.clipboard.writeText(prompt)}
+                        >
+                          <Copy className="w-5 h-5" />
+                        </Button>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })
             )}
           </AnimatePresence>
         </div>
