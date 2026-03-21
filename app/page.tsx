@@ -38,18 +38,23 @@ export default function Home() {
     setPrompt(optimizedPrompt); // Update UI to show what's actually being used
 
     try {
-      // Create an array of promises for parallel generation
-      const promises = Array.from({ length: batchSize }).map((_, i) => {
-        // Use a unique seed for each image to ensure variety
+      const urls: string[] = [];
+      
+      // Perform generations sequentially to avoid "Queue full" (Rate Limit) errors
+      for (let i = 0; i < batchSize; i++) {
         const seed = Math.floor(Math.random() * 1000000);
-        return generateImage(optimizedPrompt, seed, model);
-      });
-
-      // Await all URL generation promises in parallel
-      const urls = await Promise.all(promises);
-
-      // Set images immediately - the browser will handle loading states on the <img /> tags
-      setGeneratedImages(urls);
+        const url = await generateImage(optimizedPrompt, seed, model);
+        
+        urls.push(url);
+        
+        // Update images as they come so the user feels progress
+        setGeneratedImages([...urls]);
+        
+        // Add a tiny delay between requests to be gentle to the API
+        if (i < batchSize - 1) {
+          await new Promise(resolve => setTimeout(resolve, 800));
+        }
+      }
     } catch (error) {
       console.error("Generation failed:", error);
     } finally {
