@@ -4,19 +4,21 @@ export interface ImageGenerationResponse {
     seed: number;
 }
 
-export const generateImage = async (prompt: string, seed: number, model: string = 'flux'): Promise<string> => {
-    // Pollinations.ai URL structure
-    const encodedPrompt = encodeURIComponent(prompt);
+export const generateImage = async (prompt: string, seed: number, model: string = 'turbo'): Promise<string> => {
+    // Truncate prompt to avoid URL length issues (Pollinations limit is high, but 700 is safe)
+    const truncatedPrompt = prompt.slice(0, 700);
+    const encodedPrompt = encodeURIComponent(truncatedPrompt);
     const width = 1024;
     const height = 1024;
 
     // Map custom UI names to valid Pollinations models
-    let apiModel = model;
-    if (model === 'nano-banana-pro' || model === 'nano-banana') {
-        apiModel = 'flux'; // 'flux' is the current gold standard for quality
+    // 'turbo' is currently much more stable than 'flux' on the public endpoint
+    let apiModel = 'turbo'; 
+    if (model === 'flux' || model === 'midjourney') {
+        apiModel = model;
     }
 
-    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${apiModel}&nologo=true`;
+    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${apiModel}`;
 
     return url;
 };
